@@ -6,11 +6,8 @@ included in mate-desktop
 https://github.com/mate-desktop/mate-desktop
 
 
-![original](pics/org.png)  
-Original **MATE Color Selection** from _Applications Menu_.  
-
-![current](pics/new.png)  
-As I would like them to be!
+![image](pics/new.png)  
+**MATE Color Selection** with persistence
 
 ---------------------------
 
