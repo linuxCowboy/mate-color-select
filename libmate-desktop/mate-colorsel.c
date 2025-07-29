@@ -337,8 +337,8 @@ mate_color_selection_init (MateColorSelection *colorsel)
   mate_hsv_set_metrics (MATE_HSV (priv->triangle_colorsel), 174, 15);
   gtk_box_pack_start (GTK_BOX (top_hbox), vbox, FALSE, FALSE, 0);
   gtk_box_pack_start (GTK_BOX (vbox), priv->triangle_colorsel, FALSE, FALSE, 0);
-  gtk_widget_set_tooltip_text (priv->triangle_colorsel,
-                        _("Select the color you want from the outer ring. Select the darkness or lightness of that color using the inner triangle."));
+//  gtk_widget_set_tooltip_text (priv->triangle_colorsel,
+//                        _("Select the color you want from the outer ring. Select the darkness or lightness of that color using the inner triangle."));
 
   hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
   gtk_box_pack_end (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
@@ -361,8 +361,8 @@ mate_color_selection_init (MateColorSelection *colorsel)
   gtk_widget_show (GTK_WIDGET (picker_image));
   gtk_box_pack_end (GTK_BOX (hbox), button, FALSE, FALSE, 0);
 
-  gtk_widget_set_tooltip_text (button,
-                        _("Click the eyedropper, then click a color anywhere on your screen to select that color."));
+//  gtk_widget_set_tooltip_text (button,
+//                        _("Click the eyedropper, then click a color anywhere on your screen to select that color."));
 
   top_right_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
   gtk_box_pack_start (GTK_BOX (top_hbox), top_right_vbox, FALSE, FALSE, 0);
@@ -392,8 +392,8 @@ mate_color_selection_init (MateColorSelection *colorsel)
   adjust = GTK_ADJUSTMENT (gtk_adjustment_new (0.0, 0.0, 255.0, 1.0, 1.0, 0.0));
   g_object_set_data (G_OBJECT (adjust), "COLORSEL", colorsel);
   priv->opacity_slider = gtk_scale_new (GTK_ORIENTATION_HORIZONTAL, adjust);
-  gtk_widget_set_tooltip_text (priv->opacity_slider,
-                        _("Transparency of the color."));
+//  gtk_widget_set_tooltip_text (priv->opacity_slider,
+//                        _("Transparency of the color."));
   gtk_label_set_mnemonic_widget (GTK_LABEL (priv->opacity_label),
                                  priv->opacity_slider);
   gtk_scale_set_draw_value (GTK_SCALE (priv->opacity_slider), FALSE);
@@ -402,8 +402,8 @@ mate_color_selection_init (MateColorSelection *colorsel)
                     GINT_TO_POINTER (COLORSEL_OPACITY));
   gtk_grid_attach (GTK_GRID (grid), priv->opacity_slider, 1, 4, 6, 1);
   priv->opacity_entry = gtk_entry_new ();
-  gtk_widget_set_tooltip_text (priv->opacity_entry,
-                        _("Transparency of the color."));
+//  gtk_widget_set_tooltip_text (priv->opacity_entry,
+//                        _("Transparency of the color."));
   gtk_widget_set_size_request (priv->opacity_entry, 40, -1);
 
   g_signal_connect (priv->opacity_entry, "activate",
@@ -423,8 +423,8 @@ mate_color_selection_init (MateColorSelection *colorsel)
   g_signal_connect (priv->hex_entry, "focus-out-event",
                     G_CALLBACK (hex_focus_out), colorsel);
 
-  gtk_widget_set_tooltip_text (priv->hex_entry,
-                        _("You can enter an HTML-style hexadecimal color value, or simply a color name such as 'orange' in this entry."));
+//  gtk_widget_set_tooltip_text (priv->hex_entry,
+//                        _("You can enter an HTML-style hexadecimal color value, or simply a color name such as 'orange' in this entry."));
 
   gtk_entry_set_width_chars (GTK_ENTRY (priv->hex_entry), 7);
   gtk_grid_attach (GTK_GRID (grid), priv->hex_entry, 1, 5, 4, 1);
@@ -933,6 +933,8 @@ update_tooltips (MateColorSelection *colorsel)
   MateColorSelectionPrivate *priv;
 
   priv = colorsel->private_data;
+
+  return;
 
   if (priv->has_palette == TRUE)
     {
@@ -1532,8 +1534,8 @@ palette_new (MateColorSelection *colorsel)
   g_signal_connect (retval, "drag-data-received",
                     G_CALLBACK (palette_drop_handle), colorsel);
 
-  gtk_widget_set_tooltip_text (retval,
-                        _("Click this palette entry to make it the current color. To change this entry, drag a color swatch here or right-click it and select \"Save color here.\""));
+//  gtk_widget_set_tooltip_text (retval,
+//                        _("Click this palette entry to make it the current color. To change this entry, drag a color swatch here or right-click it and select \"Save color here.\""));
   return retval;
 }
 
@@ -2032,7 +2034,7 @@ make_label_spinbutton (MateColorSelection *colorsel,
   g_object_set_data (G_OBJECT (adjust), "COLORSEL", colorsel);
   *spinbutton = gtk_spin_button_new (adjust, 10.0, 0);
 
-  gtk_widget_set_tooltip_text (*spinbutton, tooltip);
+//  gtk_widget_set_tooltip_text (*spinbutton, tooltip);
 
   g_signal_connect (adjust, "value-changed",
                     G_CALLBACK (adjustment_changed),
