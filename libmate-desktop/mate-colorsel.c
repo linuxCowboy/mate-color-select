@@ -37,7 +37,7 @@
 #include "mate-colorsel.h"
 #include "mate-hsv.h"
 
-#define DEFAULT_COLOR_PALETTE "#ffffff:#ffffff:#ffffff:#ffffff:#ffffff:#ffffff:#ffffff:#ffffff:#ffffff:#000000:#2e3436:#555753:#888a85:#babdb6:#d3d7cf:#eeeeec:#f3f3f3:#ffffff:#ef2929:#fcaf3e:#fce94f:#8ae234:#729fcf:#ad7fa8:#e9b96e:#888a85:#eeeeec:#cc0000:#f57900:#edd400:#73d216:#3465a4:#75507b:#c17d11:#555753:#d3d7cf:#a40000:#ce5c00:#c4a000:#4e9a06:#204a87:#5c3566:#8f5902:#2e3436:#babdb6"
+#define DEFAULT_COLOR_PALETTE "#ef2929:#fcaf3e:#fce94f:#8ae234:#729fcf:#ad7fa8:#e9b96e:#888a85:#eeeeec:#cc0000:#f57900:#edd400:#73d216:#3465a4:#75507b:#c17d11:#555753:#d3d7cf:#a40000:#ce5c00:#c4a000:#4e9a06:#204a87:#5c3566:#8f5902:#2e3436:#babdb6:#000000:#2e3436:#555753:#888a85:#babdb6:#d3d7cf:#eeeeec:#f3f3f3:#ffffff:#ffffff:#ffffff:#ffffff:#ffffff:#ffffff:#ffffff:#ffffff:#ffffff:#ffffff"
 
 /* Number of elements in the custom palatte */
 #define GTK_CUSTOM_PALETTE_WIDTH 9
