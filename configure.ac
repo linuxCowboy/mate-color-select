@@ -1,5 +1,5 @@
 m4_define([mate_platform], [1])
-m4_define([mate_minor], [29])
+m4_define([mate_minor], [30])
 m4_define([mate_micro], [0])
 
 m4_define(mate_version, [mate_platform.mate_minor.mate_micro]),
@@ -26,7 +26,7 @@ AC_SUBST(ACLOCAL_AMFLAGS, "\${ACLOCAL_FLAGS}")
 #   change to C+1:0:0
 # - If the interface is the same as the previous version, change to C:R+1:A
 
-LT_VERSION=18:4:1
+LT_VERSION=19:0:0
 AC_SUBST(LT_VERSION)
 
 AM_MAINTAINER_MODE
