@@ -131,7 +131,8 @@ mate_color_selection_dialog_init (MateColorSelectionDialog *colorseldiag)
   gtk_container_set_border_width (GTK_CONTAINER (colorseldiag->colorsel), 2);
   mate_color_selection_set_has_palette (MATE_COLOR_SELECTION(colorseldiag->colorsel), FALSE);
   mate_color_selection_set_has_opacity_control (MATE_COLOR_SELECTION(colorseldiag->colorsel), FALSE);
-  gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (GTK_DIALOG (colorseldiag))), colorseldiag->colorsel);
+  gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (dialog)), colorseldiag->colorsel);
+  gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (dialog)), gtk_separator_new (GTK_ORIENTATION_HORIZONTAL));
   gtk_widget_show (colorseldiag->colorsel);
 
   colorseldiag->help_button = mate_add_dialog_button (GTK_DIALOG (colorseldiag),
