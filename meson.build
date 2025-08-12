@@ -1,7 +1,7 @@
 project(
   'mate-desktop',
   'c',
-  version: '1.29.0',
+  version: '1.30.0',
   license: [ 'GPL-2', 'FDL-1.1', 'LGPL-2' ],
 )
 
@@ -45,9 +45,9 @@ enable_startup_notification = get_option('startup-notification')
 # - If binary compatibility has been broken (eg removed or changed interfaces)
 #   change to C+1:0:0
 # - If the interface is the same as the previous version, change to C:R+1:A
-current = 17
-revision = 4
-age = 1
+current = 19
+revision = 0
+age = 0
 
 libversion = '@0@.@1@.@2@'.format(current, age, revision)
 
