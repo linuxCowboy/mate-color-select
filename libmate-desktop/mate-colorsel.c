@@ -37,7 +37,9 @@
 #include "mate-colorsel.h"
 #include "mate-hsv.h"
 
-#define DEFAULT_COLOR_PALETTE "#FF0000:#FFBF00:#80FF00:#00FF40:#00FFFF:#0040FF:#8000FF:#FF00BF:#FFFFFF:#FF4000:#FFFF00:#40FF00:#00FF80:#00BFFF:#0000FF:#BF00FF:#FF0080:#FFFFFF:#FF8000:#BFFF00:#00FF00:#00FFBF:#0080FF:#4000FF:#FF00FF:#FF0040:#FFFFFF:#000000:#222222:#444444:#666666:#888888:#AAAAAA:#CCCCCC:#EEEEEE:#FFFFFF:#FFFFFF:#FFFFFF:#FFFFFF:#FFFFFF:#FFFFFF:#FFFFFF:#FFFFFF:#FFFFFF:#FFFFFF"
+#define DEFAULT_PALETTE "#FF0000:#FFBF00:#80FF00:#00FF40:#00FFFF:#0040FF:#8000FF:#FF00BF:#FFFFFF:#FF4000:#FFFF00:#40FF00:#00FF80:#00BFFF:#0000FF:#BF00FF:#FF0080:#FFFFFF:#FF8000:#BFFF00:#00FF00:#00FFBF:#0080FF:#4000FF:#FF00FF:#FF0040:#FFFFFF:#FFFFFF:#FFFFFF:#FFFFFF:#FFFFFF:#FFFFFF:#FFFFFF:#FFFFFF:#FFFFFF:#FFFFFF:#000000:#222222:#444444:#666666:#888888:#AAAAAA:#CCCCCC:#EEEEEE:#FFFFFF"
+
+#define RESET_PALETTE   "#FF0000:#FFBF00:#80FF00:#00FF40:#00FFFF:#0040FF:#8000FF:#FF00BF:xFFFFFF:#FF4000:#FFFF00:#40FF00:#00FF80:#00BFFF:#0000FF:#BF00FF:#FF0080:xFFFFFF:#FF8000:#BFFF00:#00FF00:#00FFBF:#0080FF:#4000FF:#FF00FF:#FF0040:xFFFFFF:xFFFFFF:xFFFFFF:xFFFFFF:xFFFFFF:xFFFFFF:xFFFFFF:xFFFFFF:xFFFFFF:xFFFFFF:#000000:#222222:#444444:#666666:#888888:#AAAAAA:#CCCCCC:#EEEEEE:#FFFFFF"
 
 /* Number of elements in the custom palatte */
 #define GTK_CUSTOM_PALETTE_WIDTH 9
@@ -205,6 +207,8 @@ static void shutdown_eyedropper (GtkWidget *widget);
 static guint color_selection_signals[LAST_SIGNAL] = { 0 };
 
 static gchar color_palette[SIZE_OF_COLOR_PALETTE] = { 0 };
+
+static gchar reset_palette[SIZE_OF_COLOR_PALETTE] = { 0 };
 
 static const guchar dropper_bits[] = {
 "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
@@ -1177,7 +1181,7 @@ get_current_colors (MateColorSelection *colorsel)
       if (str && *str)
         g_strlcpy(pal, str, SIZE_OF_COLOR_PALETTE);
       else
-        g_strlcpy(pal, DEFAULT_COLOR_PALETTE, SIZE_OF_COLOR_PALETTE);
+        g_strlcpy(pal, DEFAULT_PALETTE, SIZE_OF_COLOR_PALETTE);
 
       g_free (str);
     }
@@ -2820,7 +2824,15 @@ mate_color_selection_palette_set (MateColorSelection *colorsel, gchar *pal)
   MateColorSelectionPrivate *priv = colorsel->private_data;
 
   if (!pal)
-    pal = DEFAULT_COLOR_PALETTE;
+    {
+      pal = reset_palette;
+
+      g_strlcpy(reset_palette, RESET_PALETTE, SIZE_OF_COLOR_PALETTE);
+
+      for (int i=0; i < SIZE_OF_COLOR_PALETTE; i += 8)
+        if (pal[i] == 'x')
+          memcpy (pal + i, color_palette + i, 8);
+    }
 
   default_change_palette_func (screen, pal);
 

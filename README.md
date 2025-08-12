@@ -1,13 +1,11 @@
 mate-color-select
 =================
 
-included in mate-desktop
-
-https://github.com/mate-desktop/mate-desktop
+included in _mate-desktop_
 
 
 ![image](pics/new.png)  
-**MATE Color Selection** with persistence and keyboard support
+**MATE Color Selection** with indelible swatches
 
 - Palette default is *Hue* 15° * 3\*8 = 360°
 
@@ -15,13 +13,19 @@ https://github.com/mate-desktop/mate-desktop
 
 - Grayscale line
 
-- Extra swatches are for customization
+- Default color
+
+- Extra swatches for alterations
 
 - All swatches are read/write
 
-- Runs under the X Window System
+- Marked are indelible
 
---------------------------------
+- Keyboard support
+
+- Runs under X11
+
+----------------
 
 Compile:
 --------
