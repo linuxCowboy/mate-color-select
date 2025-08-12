@@ -58,6 +58,8 @@
 #define CHECK_SIZE 16
 #define BIG_STEP 20
 
+#define START_COLOR "#00FFFF"
+
 /* Conversion between 0->1 double and and guint16. See
  * scale_round() below for more general conversions
  */
@@ -583,11 +585,28 @@ mate_color_selection_realize (GtkWidget *widget)
   MateColorSelection *colorsel = MATE_COLOR_SELECTION (widget);
   MateColorSelectionPrivate *priv = colorsel->private_data;
   GtkSettings *settings = gtk_widget_get_settings (widget);
+  GdkRGBA color;
 
   priv->settings_connection =  g_signal_connect (settings,
 						 "notify::gtk-color-palette",
 						 G_CALLBACK (palette_change_notify_instance),
 						 widget);
+  if (gdk_rgba_parse (&color, START_COLOR))
+    {
+      priv->color[COLORSEL_RED]   = color.red;
+      priv->color[COLORSEL_GREEN] = color.green;
+      priv->color[COLORSEL_BLUE]  = color.blue;
+
+      gtk_rgb_to_hsv (priv->color[COLORSEL_RED],
+                      priv->color[COLORSEL_GREEN],
+                      priv->color[COLORSEL_BLUE],
+                      &priv->color[COLORSEL_HUE],
+                      &priv->color[COLORSEL_SATURATION],
+                      &priv->color[COLORSEL_VALUE]);
+
+      update_color (colorsel);
+    }
+
   update_palette (colorsel);
 
   GTK_WIDGET_CLASS (mate_color_selection_parent_class)->realize (widget);
