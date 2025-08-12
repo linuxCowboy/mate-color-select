@@ -7,9 +7,9 @@ https://github.com/mate-desktop/mate-desktop
 
 
 ![image](pics/new.png)  
-**MATE Color Selection** with persistence
+**MATE Color Selection** with persistence and keyboard
 
----------------------------
+------------------------------------------------------
 
 Compile:
 --------
