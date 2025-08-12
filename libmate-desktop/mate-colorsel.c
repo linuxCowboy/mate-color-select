@@ -2155,9 +2155,12 @@ update_palette (MateColorSelection *colorsel)
 
   for (int i=0; i < GTK_CUSTOM_PALETTE_HEIGHT; ++i)
     for (int j=0; j < GTK_CUSTOM_PALETTE_WIDTH; ++j)
-      mate_color_selection_set_palette_color (colorsel,
-                                              i * GTK_CUSTOM_PALETTE_WIDTH + j,
-                                              &current_colors[i * GTK_CUSTOM_PALETTE_WIDTH + j]);
+      {
+        int idx = i * GTK_CUSTOM_PALETTE_WIDTH + j;
+        mate_color_selection_set_palette_color (colorsel, idx, &current_colors[idx]);
+        gtk_widget_queue_draw (GTK_WIDGET (colorsel->private_data->custom_palette[i][j]));
+      }
+
   g_free (current_colors);
 }
 
@@ -2591,11 +2594,10 @@ mate_color_selection_get_previous_alpha (MateColorSelection *colorsel)
  *
  **/
 static void
-mate_color_selection_set_palette_color (MateColorSelection   *colorsel,
+mate_color_selection_set_palette_color (MateColorSelection *colorsel,
 				       gint                 index,
-				       GdkRGBA            *color)
+				       GdkRGBA             *color)
 {
-  MateColorSelectionPrivate *priv;
   gdouble new[3];
 
   g_return_if_fail (MATE_IS_COLOR_SELECTION (colorsel));
@@ -2604,12 +2606,11 @@ mate_color_selection_set_palette_color (MateColorSelection   *colorsel,
   gint row = index / GTK_CUSTOM_PALETTE_WIDTH;
   gint col = index % GTK_CUSTOM_PALETTE_WIDTH;
 
-  priv = colorsel->private_data;
   new[0] = color->red;
   new[1] = color->green;
   new[2] = color->blue;
 
-  palette_set_color (priv->custom_palette[row][col], colorsel, new);
+  palette_set_color (colorsel->private_data->custom_palette[row][col], colorsel, new);
 }
 
 /**
