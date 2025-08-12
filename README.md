@@ -7,9 +7,21 @@ https://github.com/mate-desktop/mate-desktop
 
 
 ![image](pics/new.png)  
-**MATE Color Selection** with persistence and keyboard
+**MATE Color Selection** with persistence and keyboard support
 
-------------------------------------------------------
+- Palette default is *Hue* 15° * 3\*8 = 360°
+
+- *Saturation* 100%, *Value* 100%
+
+- Grayscale line
+
+- Extra swatches are for customization
+
+- All swatches are read/write
+
+- Runs under the X Window System
+
+--------------------------------
 
 Compile:
 --------
