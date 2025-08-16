@@ -84,14 +84,14 @@ enum {
 };
 
 enum {
-  COLORSEL_RED = 0,
-  COLORSEL_GREEN = 1,
-  COLORSEL_BLUE = 2,
-  COLORSEL_OPACITY = 3,
+  COLORSEL_RED,
+  COLORSEL_GRN,
+  COLORSEL_BLU,
+  COLORSEL_OPA,
   COLORSEL_HUE,
-  COLORSEL_SATURATION,
-  COLORSEL_VALUE,
-  COLORSEL_NUM_CHANNELS
+  COLORSEL_SAT,
+  COLORSEL_VAL,
+  COLORSEL_NUM
 };
 
 struct _MateColorSelectionPrivate
@@ -103,8 +103,9 @@ struct _MateColorSelectionPrivate
   guint default_alpha_set : 1;
   guint has_grab : 1;
 
-  gdouble color[COLORSEL_NUM_CHANNELS];
-  gdouble old_color[COLORSEL_NUM_CHANNELS];
+  gdouble color[COLORSEL_NUM];
+  gdouble old_color[COLORSEL_NUM];
+  gdouble bak_color[COLORSEL_NUM];
 
   GtkWidget *triangle_colorsel;
   GtkWidget *hue_spinbutton;
@@ -380,15 +381,15 @@ mate_color_selection_init (MateColorSelection *colorsel)
   make_label_spinbutton (colorsel, &priv->hue_spinbutton, _("_Hue:"), grid, 0, 0, COLORSEL_HUE,
                          _("Position on the color wheel."));
   gtk_spin_button_set_wrap (GTK_SPIN_BUTTON (priv->hue_spinbutton), TRUE);
-  make_label_spinbutton (colorsel, &priv->sat_spinbutton, _("_Saturation:"), grid, 0, 1, COLORSEL_SATURATION,
+  make_label_spinbutton (colorsel, &priv->sat_spinbutton, _("_Saturation:"), grid, 0, 1, COLORSEL_SAT,
                          _("\"Deepness\" of the color."));
-  make_label_spinbutton (colorsel, &priv->val_spinbutton, _("_Value:"), grid, 0, 2, COLORSEL_VALUE,
+  make_label_spinbutton (colorsel, &priv->val_spinbutton, _("_Value:"), grid, 0, 2, COLORSEL_VAL,
                          _("Brightness of the color."));
   make_label_spinbutton (colorsel, &priv->red_spinbutton, _("_Red:"), grid, 6, 0, COLORSEL_RED,
                          _("Amount of red light in the color."));
-  make_label_spinbutton (colorsel, &priv->green_spinbutton, _("_Green:"), grid, 6, 1, COLORSEL_GREEN,
+  make_label_spinbutton (colorsel, &priv->green_spinbutton, _("_Green:"), grid, 6, 1, COLORSEL_GRN,
                          _("Amount of green light in the color."));
-  make_label_spinbutton (colorsel, &priv->blue_spinbutton, _("_Blue:"), grid, 6, 2, COLORSEL_BLUE,
+  make_label_spinbutton (colorsel, &priv->blue_spinbutton, _("_Blue:"), grid, 6, 2, COLORSEL_BLU,
                          _("Amount of blue light in the color."));
   gtk_grid_attach (GTK_GRID (grid), gtk_separator_new (GTK_ORIENTATION_HORIZONTAL), 0, 3, 8, 1);
 
@@ -405,7 +406,7 @@ mate_color_selection_init (MateColorSelection *colorsel)
   gtk_scale_set_draw_value (GTK_SCALE (priv->opacity_slider), FALSE);
   g_signal_connect (adjust, "value-changed",
                     G_CALLBACK (adjustment_changed),
-                    GINT_TO_POINTER (COLORSEL_OPACITY));
+                    GINT_TO_POINTER (COLORSEL_OPA));
   gtk_grid_attach (GTK_GRID (grid), priv->opacity_slider, 1, 4, 6, 1);
   priv->opacity_entry = gtk_entry_new ();
 //  gtk_widget_set_tooltip_text (priv->opacity_entry,
@@ -596,20 +597,7 @@ mate_color_selection_realize (GtkWidget *widget)
 						 G_CALLBACK (palette_change_notify_instance),
 						 widget);
   if (gdk_rgba_parse (&color, START_COLOR))
-    {
-      priv->color[COLORSEL_RED]   = color.red;
-      priv->color[COLORSEL_GREEN] = color.green;
-      priv->color[COLORSEL_BLUE]  = color.blue;
-
-      gtk_rgb_to_hsv (priv->color[COLORSEL_RED],
-                      priv->color[COLORSEL_GREEN],
-                      priv->color[COLORSEL_BLUE],
-                      &priv->color[COLORSEL_HUE],
-                      &priv->color[COLORSEL_SATURATION],
-                      &priv->color[COLORSEL_VALUE]);
-
-      update_color (colorsel);
-    }
+    mate_color_selection_set_color (colorsel, (gdouble*) &color);
 
   update_palette (colorsel);
 
@@ -657,29 +645,47 @@ static void color_sample_draw_sample (MateColorSelection *colorsel, cairo_t *cr,
 static void color_sample_update_samples (MateColorSelection *colorsel);
 
 static void
+save_color (MateColorSelectionPrivate *priv)
+{
+  for (int i=0; i < COLORSEL_NUM; ++i)
+    priv->bak_color[i] = priv->color[i];
+}
+
+static void
+check_color (MateColorSelectionPrivate *priv)
+{
+  if (priv->color[COLORSEL_RED] != priv->bak_color[COLORSEL_RED] ||
+      priv->color[COLORSEL_GRN] != priv->bak_color[COLORSEL_GRN] ||
+      priv->color[COLORSEL_BLU] != priv->bak_color[COLORSEL_BLU])
+    {
+      for (int i=0; i < COLORSEL_NUM; ++i)
+        priv->old_color[i] = priv->bak_color[i];
+    }
+}
+
+static void
 set_color_internal (MateColorSelection *colorsel,
-		    gdouble           *color)
+		    gdouble            *color)
 {
   MateColorSelectionPrivate *priv;
-  gint i;
 
   priv = colorsel->private_data;
   priv->changing = TRUE;
+
+  save_color (priv);
   priv->color[COLORSEL_RED] = color[0];
-  priv->color[COLORSEL_GREEN] = color[1];
-  priv->color[COLORSEL_BLUE] = color[2];
-  priv->color[COLORSEL_OPACITY] = color[3];
-  gtk_rgb_to_hsv (priv->color[COLORSEL_RED],
-		  priv->color[COLORSEL_GREEN],
-		  priv->color[COLORSEL_BLUE],
+  priv->color[COLORSEL_GRN] = color[1];
+  priv->color[COLORSEL_BLU] = color[2];
+  priv->color[COLORSEL_OPA] = color[3];
+
+  gtk_rgb_to_hsv ( priv->color[COLORSEL_RED],
+		   priv->color[COLORSEL_GRN],
+		   priv->color[COLORSEL_BLU],
 		  &priv->color[COLORSEL_HUE],
-		  &priv->color[COLORSEL_SATURATION],
-		  &priv->color[COLORSEL_VALUE]);
-  if (priv->default_set == FALSE)
-    {
-      for (i = 0; i < COLORSEL_NUM_CHANNELS; i++)
-	priv->old_color[i] = priv->color[i];
-    }
+		  &priv->color[COLORSEL_SAT],
+		  &priv->color[COLORSEL_VAL]);
+  check_color (priv);
+
   priv->default_set = TRUE;
   priv->default_alpha_set = TRUE;
   update_color (colorsel);
@@ -695,9 +701,9 @@ set_color_icon (GdkDragContext *context,
   pixbuf = gdk_pixbuf_new (GDK_COLORSPACE_RGB, FALSE,
 			   8, 48, 32);
 
-  pixel = (((UNSCALE (colors[COLORSEL_RED])   & 0xff00) << 16) |
-	   ((UNSCALE (colors[COLORSEL_GREEN]) & 0xff00) << 8) |
-	   ((UNSCALE (colors[COLORSEL_BLUE])  & 0xff00)));
+  pixel = (((UNSCALE (colors[COLORSEL_RED]) & 0xff00) << 16) |
+	   ((UNSCALE (colors[COLORSEL_GRN]) & 0xff00) <<  8) |
+	   ((UNSCALE (colors[COLORSEL_BLU]) & 0xff00)));
 
   gdk_pixbuf_fill (pixbuf, pixel);
 
@@ -801,9 +807,9 @@ color_sample_drag_handle (GtkWidget        *widget,
     colsrc = priv->color;
 
   vals[0] = colsrc[COLORSEL_RED] * 0xffff;
-  vals[1] = colsrc[COLORSEL_GREEN] * 0xffff;
-  vals[2] = colsrc[COLORSEL_BLUE] * 0xffff;
-  vals[3] = priv->has_opacity ? colsrc[COLORSEL_OPACITY] * 0xffff : 0xffff;
+  vals[1] = colsrc[COLORSEL_GRN] * 0xffff;
+  vals[2] = colsrc[COLORSEL_BLU] * 0xffff;
+  vals[3] = priv->has_opacity ? colsrc[COLORSEL_OPA] * 0xffff : 0xffff;
 
   gtk_selection_data_set (selection_data,
 			  gdk_atom_intern_static_string ("application/x-color"),
@@ -864,19 +870,19 @@ color_sample_draw_sample (MateColorSelection *colorsel, cairo_t *cr, int which)
     {
       cairo_set_source_rgba (cr,
 			     priv->old_color[COLORSEL_RED],
-			     priv->old_color[COLORSEL_GREEN],
-			     priv->old_color[COLORSEL_BLUE],
+			     priv->old_color[COLORSEL_GRN],
+			     priv->old_color[COLORSEL_BLU],
 			     priv->has_opacity ?
-			        priv->old_color[COLORSEL_OPACITY] : 1.0);
+			        priv->old_color[COLORSEL_OPA] : 1.0);
     }
   else
     {
       cairo_set_source_rgba (cr,
 			     priv->color[COLORSEL_RED],
-			     priv->color[COLORSEL_GREEN],
-			     priv->color[COLORSEL_BLUE],
+			     priv->color[COLORSEL_GRN],
+			     priv->color[COLORSEL_BLU],
 			     priv->has_opacity ?
-			       priv->color[COLORSEL_OPACITY] : 1.0);
+			       priv->color[COLORSEL_OPA] : 1.0);
     }
 
   cairo_rectangle (cr, 0, 0, wid, heig);
@@ -1144,8 +1150,8 @@ palette_drag_handle (GtkWidget        *widget,
   palette_get_color (widget, colsrc);
 
   vals[0] = colsrc[COLORSEL_RED] * 0xffff;
-  vals[1] = colsrc[COLORSEL_GREEN] * 0xffff;
-  vals[2] = colsrc[COLORSEL_BLUE] * 0xffff;
+  vals[1] = colsrc[COLORSEL_GRN] * 0xffff;
+  vals[2] = colsrc[COLORSEL_BLU] * 0xffff;
   vals[3] = 0xffff;
 
   gtk_selection_data_set (selection_data,
@@ -1214,9 +1220,9 @@ palette_change_color (GtkWidget          *drawing_area,
 
   priv = colorsel->private_data;
 
-  gdk_color.red = color[0];
+  gdk_color.red   = color[0];
   gdk_color.green = color[1];
-  gdk_color.blue = color[2];
+  gdk_color.blue  = color[2];
 
   for (row=0; row < GTK_CUSTOM_PALETTE_HEIGHT; ++row)
     for (col=0; col < GTK_CUSTOM_PALETTE_WIDTH; ++col)
@@ -1624,17 +1630,20 @@ grab_color_at_mouse (GdkScreen *screen,
         return;
     }
   pixels = gdk_pixbuf_get_pixels (pixbuf);
+
+  save_color (priv);
   priv->color[COLORSEL_RED] = SCALE(pixels[0] * 0x101);
-  priv->color[COLORSEL_GREEN] = SCALE(pixels[1] * 0x101);
-  priv->color[COLORSEL_BLUE] = SCALE(pixels[2] * 0x101);
+  priv->color[COLORSEL_GRN] = SCALE(pixels[1] * 0x101);
+  priv->color[COLORSEL_BLU] = SCALE(pixels[2] * 0x101);
   g_object_unref (pixbuf);
 
-  gtk_rgb_to_hsv (priv->color[COLORSEL_RED],
-                  priv->color[COLORSEL_GREEN],
-                  priv->color[COLORSEL_BLUE],
+  gtk_rgb_to_hsv ( priv->color[COLORSEL_RED],
+                   priv->color[COLORSEL_GRN],
+                   priv->color[COLORSEL_BLU],
                   &priv->color[COLORSEL_HUE],
-                  &priv->color[COLORSEL_SATURATION],
-                  &priv->color[COLORSEL_VALUE]);
+                  &priv->color[COLORSEL_SAT],
+                  &priv->color[COLORSEL_VAL]);
+  check_color (priv);
 
   update_color (colorsel);
 }
@@ -1897,15 +1906,19 @@ hex_changed (GtkWidget *hex_entry,
 
   if (gdk_rgba_parse (&color, text))
     {
-      priv->color[COLORSEL_RED]   = color.red;
-      priv->color[COLORSEL_GREEN] = color.green;
-      priv->color[COLORSEL_BLUE]  = color.blue;
-      gtk_rgb_to_hsv (priv->color[COLORSEL_RED],
-                      priv->color[COLORSEL_GREEN],
-                      priv->color[COLORSEL_BLUE],
+      save_color (priv);
+      priv->color[COLORSEL_RED] = color.red;
+      priv->color[COLORSEL_GRN] = color.green;
+      priv->color[COLORSEL_BLU] = color.blue;
+
+      gtk_rgb_to_hsv ( priv->color[COLORSEL_RED],
+                       priv->color[COLORSEL_GRN],
+                       priv->color[COLORSEL_BLU],
                       &priv->color[COLORSEL_HUE],
-                      &priv->color[COLORSEL_SATURATION],
-                      &priv->color[COLORSEL_VALUE]);
+                      &priv->color[COLORSEL_SAT],
+                      &priv->color[COLORSEL_VAL]);
+      check_color (priv);
+
       update_color (colorsel);
     }
   g_free (text);
@@ -1934,16 +1947,20 @@ hsv_changed (GtkWidget *hsv,
   if (priv->changing)
     return;
 
+  save_color (priv);
   mate_hsv_get_color (MATE_HSV (hsv),
 		      &priv->color[COLORSEL_HUE],
-		      &priv->color[COLORSEL_SATURATION],
-		      &priv->color[COLORSEL_VALUE]);
-  gtk_hsv_to_rgb (priv->color[COLORSEL_HUE],
-		  priv->color[COLORSEL_SATURATION],
-		  priv->color[COLORSEL_VALUE],
+		      &priv->color[COLORSEL_SAT],
+		      &priv->color[COLORSEL_VAL]);
+
+  gtk_hsv_to_rgb ( priv->color[COLORSEL_HUE],
+		   priv->color[COLORSEL_SAT],
+		   priv->color[COLORSEL_VAL],
 		  &priv->color[COLORSEL_RED],
-		  &priv->color[COLORSEL_GREEN],
-		  &priv->color[COLORSEL_BLUE]);
+		  &priv->color[COLORSEL_GRN],
+		  &priv->color[COLORSEL_BLU]);
+  check_color (priv);
+
   update_color (colorsel);
 }
 
@@ -1962,43 +1979,46 @@ adjustment_changed (GtkAdjustment *adjustment,
   if (priv->changing)
     return;
 
+  save_color (priv);
   switch (GPOINTER_TO_INT (data))
     {
-    case COLORSEL_SATURATION:
-    case COLORSEL_VALUE:
+    case COLORSEL_SAT:
+    case COLORSEL_VAL:
       priv->color[GPOINTER_TO_INT (data)] = value / 100;
-      gtk_hsv_to_rgb (priv->color[COLORSEL_HUE],
-		      priv->color[COLORSEL_SATURATION],
-		      priv->color[COLORSEL_VALUE],
+      gtk_hsv_to_rgb ( priv->color[COLORSEL_HUE],
+		       priv->color[COLORSEL_SAT],
+		       priv->color[COLORSEL_VAL],
 		      &priv->color[COLORSEL_RED],
-		      &priv->color[COLORSEL_GREEN],
-		      &priv->color[COLORSEL_BLUE]);
+		      &priv->color[COLORSEL_GRN],
+		      &priv->color[COLORSEL_BLU]);
       break;
     case COLORSEL_HUE:
       priv->color[GPOINTER_TO_INT (data)] = value / 360;
-      gtk_hsv_to_rgb (priv->color[COLORSEL_HUE],
-		      priv->color[COLORSEL_SATURATION],
-		      priv->color[COLORSEL_VALUE],
+      gtk_hsv_to_rgb ( priv->color[COLORSEL_HUE],
+		       priv->color[COLORSEL_SAT],
+		       priv->color[COLORSEL_VAL],
 		      &priv->color[COLORSEL_RED],
-		      &priv->color[COLORSEL_GREEN],
-		      &priv->color[COLORSEL_BLUE]);
+		      &priv->color[COLORSEL_GRN],
+		      &priv->color[COLORSEL_BLU]);
       break;
     case COLORSEL_RED:
-    case COLORSEL_GREEN:
-    case COLORSEL_BLUE:
+    case COLORSEL_GRN:
+    case COLORSEL_BLU:
       priv->color[GPOINTER_TO_INT (data)] = value / 255;
 
-      gtk_rgb_to_hsv (priv->color[COLORSEL_RED],
-		      priv->color[COLORSEL_GREEN],
-		      priv->color[COLORSEL_BLUE],
+      gtk_rgb_to_hsv ( priv->color[COLORSEL_RED],
+		       priv->color[COLORSEL_GRN],
+		       priv->color[COLORSEL_BLU],
 		      &priv->color[COLORSEL_HUE],
-		      &priv->color[COLORSEL_SATURATION],
-		      &priv->color[COLORSEL_VALUE]);
+		      &priv->color[COLORSEL_SAT],
+		      &priv->color[COLORSEL_VAL]);
       break;
     default:
       priv->color[GPOINTER_TO_INT (data)] = value / 255;
       break;
     }
+  check_color (priv);
+
   update_color (colorsel);
 }
 
@@ -2043,8 +2063,8 @@ make_label_spinbutton (MateColorSelection *colorsel,
     {
       adjust = GTK_ADJUSTMENT (gtk_adjustment_new (0.0, 0.0, 360.0, 1.0, 1.0, 0.0));
     }
-  else if (channel_type == COLORSEL_SATURATION ||
-	   channel_type == COLORSEL_VALUE)
+  else if (channel_type == COLORSEL_SAT ||
+	   channel_type == COLORSEL_VAL)
     {
       adjust = GTK_ADJUSTMENT (gtk_adjustment_new (0.0, 0.0, 100.0, 1.0, 1.0, 0.0));
     }
@@ -2121,36 +2141,36 @@ update_color (MateColorSelection *colorsel)
 
   mate_hsv_set_color (MATE_HSV (priv->triangle_colorsel),
 		      priv->color[COLORSEL_HUE],
-		      priv->color[COLORSEL_SATURATION],
-		      priv->color[COLORSEL_VALUE]);
+		      priv->color[COLORSEL_SAT],
+		      priv->color[COLORSEL_VAL]);
   gtk_adjustment_set_value (gtk_spin_button_get_adjustment
 			    (GTK_SPIN_BUTTON (priv->hue_spinbutton)),
 			    scale_round (priv->color[COLORSEL_HUE], 360));
   gtk_adjustment_set_value (gtk_spin_button_get_adjustment
 			    (GTK_SPIN_BUTTON (priv->sat_spinbutton)),
-			    scale_round (priv->color[COLORSEL_SATURATION], 100));
+			    scale_round (priv->color[COLORSEL_SAT], 100));
   gtk_adjustment_set_value (gtk_spin_button_get_adjustment
 			    (GTK_SPIN_BUTTON (priv->val_spinbutton)),
-			    scale_round (priv->color[COLORSEL_VALUE], 100));
+			    scale_round (priv->color[COLORSEL_VAL], 100));
   gtk_adjustment_set_value (gtk_spin_button_get_adjustment
 			    (GTK_SPIN_BUTTON (priv->red_spinbutton)),
 			    scale_round (priv->color[COLORSEL_RED], 255));
   gtk_adjustment_set_value (gtk_spin_button_get_adjustment
 			    (GTK_SPIN_BUTTON (priv->green_spinbutton)),
-			    scale_round (priv->color[COLORSEL_GREEN], 255));
+			    scale_round (priv->color[COLORSEL_GRN], 255));
   gtk_adjustment_set_value (gtk_spin_button_get_adjustment
 			    (GTK_SPIN_BUTTON (priv->blue_spinbutton)),
-			    scale_round (priv->color[COLORSEL_BLUE], 255));
+			    scale_round (priv->color[COLORSEL_BLU], 255));
   gtk_adjustment_set_value (gtk_range_get_adjustment
 			    (GTK_RANGE (priv->opacity_slider)),
-			    scale_round (priv->color[COLORSEL_OPACITY], 255));
+			    scale_round (priv->color[COLORSEL_OPA], 255));
 
-  g_snprintf (opacity_text, 32, "%.0f", scale_round (priv->color[COLORSEL_OPACITY], 255));
+  g_snprintf (opacity_text, 32, "%.0f", scale_round (priv->color[COLORSEL_OPA], 255));
   gtk_entry_set_text (GTK_ENTRY (priv->opacity_entry), opacity_text);
 
-  r = scale_round (priv->color[COLORSEL_RED],   255);
-  g = scale_round (priv->color[COLORSEL_GREEN], 255);
-  b = scale_round (priv->color[COLORSEL_BLUE],  255);
+  r = scale_round (priv->color[COLORSEL_RED], 255);
+  g = scale_round (priv->color[COLORSEL_GRN], 255);
+  b = scale_round (priv->color[COLORSEL_BLU], 255);
   g_snprintf (entryval, 11, "#%2X%2X%2X", (guint) r, (guint) g, (guint) b);
 
   for (ptr = entryval; *ptr; ptr++)
@@ -2371,21 +2391,21 @@ mate_color_selection_set_current_rgba (MateColorSelection *colorsel,
   priv = colorsel->private_data;
   priv->changing = TRUE;
 
-  priv->color[COLORSEL_RED] = CLAMP (rgba->red, 0, 1);
-  priv->color[COLORSEL_GREEN] = CLAMP (rgba->green, 0, 1);
-  priv->color[COLORSEL_BLUE] = CLAMP (rgba->blue, 0, 1);
-  priv->color[COLORSEL_OPACITY] = CLAMP (rgba->alpha, 0, 1);
+  priv->color[COLORSEL_RED] = CLAMP (rgba->red,   0, 1);
+  priv->color[COLORSEL_GRN] = CLAMP (rgba->green, 0, 1);
+  priv->color[COLORSEL_BLU] = CLAMP (rgba->blue,  0, 1);
+  priv->color[COLORSEL_OPA] = CLAMP (rgba->alpha, 0, 1);
 
-  gtk_rgb_to_hsv (priv->color[COLORSEL_RED],
-                  priv->color[COLORSEL_GREEN],
-                  priv->color[COLORSEL_BLUE],
+  gtk_rgb_to_hsv ( priv->color[COLORSEL_RED],
+                   priv->color[COLORSEL_GRN],
+                   priv->color[COLORSEL_BLU],
                   &priv->color[COLORSEL_HUE],
-                  &priv->color[COLORSEL_SATURATION],
-                  &priv->color[COLORSEL_VALUE]);
+                  &priv->color[COLORSEL_SAT],
+                  &priv->color[COLORSEL_VAL]);
 
   if (priv->default_set == FALSE)
     {
-      for (i = 0; i < COLORSEL_NUM_CHANNELS; i++)
+      for (i = 0; i < COLORSEL_NUM; i++)
         priv->old_color[i] = priv->color[i];
     }
 
@@ -2403,7 +2423,7 @@ mate_color_selection_set_current_rgba (MateColorSelection *colorsel,
  **/
 void
 mate_color_selection_set_current_alpha (MateColorSelection *colorsel,
-				       guint16            alpha)
+                                        guint16             alpha)
 {
   MateColorSelectionPrivate *priv;
   gint i;
@@ -2412,10 +2432,10 @@ mate_color_selection_set_current_alpha (MateColorSelection *colorsel,
 
   priv = colorsel->private_data;
   priv->changing = TRUE;
-  priv->color[COLORSEL_OPACITY] = SCALE (alpha);
+  priv->color[COLORSEL_OPA] = SCALE (alpha);
   if (priv->default_alpha_set == FALSE)
     {
-      for (i = 0; i < COLORSEL_NUM_CHANNELS; i++)
+      for (i = 0; i < COLORSEL_NUM; i++)
 	priv->old_color[i] = priv->color[i];
     }
   priv->default_alpha_set = TRUE;
@@ -2434,8 +2454,8 @@ mate_color_selection_set_current_alpha (MateColorSelection *colorsel,
  * Deprecated: 2.0: Use mate_color_selection_set_current_color() instead.
  **/
 void
-mate_color_selection_set_color (MateColorSelection    *colorsel,
-			       gdouble              *color)
+mate_color_selection_set_color (MateColorSelection *colorsel,
+                                gdouble            *color)
 {
   g_return_if_fail (MATE_IS_COLOR_SELECTION (colorsel));
 
@@ -2451,7 +2471,7 @@ mate_color_selection_set_color (MateColorSelection    *colorsel,
  **/
 void
 mate_color_selection_get_current_rgba (MateColorSelection *colorsel,
-				       GdkRGBA          *color)
+                                       GdkRGBA            *color)
 {
   MateColorSelectionPrivate *priv;
 
@@ -2459,9 +2479,9 @@ mate_color_selection_get_current_rgba (MateColorSelection *colorsel,
   g_return_if_fail (color != NULL);
 
   priv = colorsel->private_data;
-  color->red = priv->color[COLORSEL_RED];
-  color->green = priv->color[COLORSEL_GREEN];
-  color->blue = priv->color[COLORSEL_BLUE];
+  color->red   = priv->color[COLORSEL_RED];
+  color->green = priv->color[COLORSEL_GRN];
+  color->blue  = priv->color[COLORSEL_BLU];
 }
 
 /**
@@ -2480,7 +2500,7 @@ mate_color_selection_get_current_alpha (MateColorSelection *colorsel)
   g_return_val_if_fail (MATE_IS_COLOR_SELECTION (colorsel), 0);
 
   priv = colorsel->private_data;
-  return priv->has_opacity ? UNSCALE (priv->color[COLORSEL_OPACITY]) : 65535;
+  return priv->has_opacity ? UNSCALE (priv->color[COLORSEL_OPA]) : 65535;
 }
 
 /**
@@ -2494,7 +2514,7 @@ mate_color_selection_get_current_alpha (MateColorSelection *colorsel)
  **/
 void
 mate_color_selection_get_color (MateColorSelection *colorsel,
-			       gdouble           *color)
+			        gdouble            *color)
 {
   MateColorSelectionPrivate *priv;
 
@@ -2502,9 +2522,9 @@ mate_color_selection_get_color (MateColorSelection *colorsel,
 
   priv = colorsel->private_data;
   color[0] = priv->color[COLORSEL_RED];
-  color[1] = priv->color[COLORSEL_GREEN];
-  color[2] = priv->color[COLORSEL_BLUE];
-  color[3] = priv->has_opacity ? priv->color[COLORSEL_OPACITY] : 65535;
+  color[1] = priv->color[COLORSEL_GRN];
+  color[2] = priv->color[COLORSEL_BLU];
+  color[3] = priv->has_opacity ? priv->color[COLORSEL_OPA] : 65535;
 }
 
 /**
@@ -2519,7 +2539,7 @@ mate_color_selection_get_color (MateColorSelection *colorsel,
  **/
 void
 mate_color_selection_set_previous_color (MateColorSelection *colorsel,
-					const GdkRGBA    *color)
+                                         const GdkRGBA      *color)
 {
   MateColorSelectionPrivate *priv;
 
@@ -2529,14 +2549,16 @@ mate_color_selection_set_previous_color (MateColorSelection *colorsel,
   priv = colorsel->private_data;
   priv->changing = TRUE;
   priv->old_color[COLORSEL_RED] = color->red;
-  priv->old_color[COLORSEL_GREEN] = color->green;
-  priv->old_color[COLORSEL_BLUE] = color->blue;
-  gtk_rgb_to_hsv (priv->old_color[COLORSEL_RED],
-		  priv->old_color[COLORSEL_GREEN],
-		  priv->old_color[COLORSEL_BLUE],
+  priv->old_color[COLORSEL_GRN] = color->green;
+  priv->old_color[COLORSEL_BLU] = color->blue;
+
+  gtk_rgb_to_hsv ( priv->old_color[COLORSEL_RED],
+		   priv->old_color[COLORSEL_GRN],
+		   priv->old_color[COLORSEL_BLU],
 		  &priv->old_color[COLORSEL_HUE],
-		  &priv->old_color[COLORSEL_SATURATION],
-		  &priv->old_color[COLORSEL_VALUE]);
+		  &priv->old_color[COLORSEL_SAT],
+		  &priv->old_color[COLORSEL_VAL]);
+
   color_sample_update_samples (colorsel);
   priv->default_set = TRUE;
   priv->changing = FALSE;
@@ -2552,7 +2574,7 @@ mate_color_selection_set_previous_color (MateColorSelection *colorsel,
  **/
 void
 mate_color_selection_set_previous_alpha (MateColorSelection *colorsel,
-					guint16            alpha)
+                                         guint16             alpha)
 {
   MateColorSelectionPrivate *priv;
 
@@ -2560,7 +2582,7 @@ mate_color_selection_set_previous_alpha (MateColorSelection *colorsel,
 
   priv = colorsel->private_data;
   priv->changing = TRUE;
-  priv->old_color[COLORSEL_OPACITY] = SCALE (alpha);
+  priv->old_color[COLORSEL_OPA] = SCALE (alpha);
   color_sample_update_samples (colorsel);
   priv->default_alpha_set = TRUE;
   priv->changing = FALSE;
@@ -2575,7 +2597,7 @@ mate_color_selection_set_previous_alpha (MateColorSelection *colorsel,
  **/
 void
 mate_color_selection_get_previous_color (MateColorSelection *colorsel,
-					GdkRGBA           *color)
+                                         GdkRGBA            *color)
 {
   MateColorSelectionPrivate *priv;
 
@@ -2583,9 +2605,9 @@ mate_color_selection_get_previous_color (MateColorSelection *colorsel,
   g_return_if_fail (color != NULL);
 
   priv = colorsel->private_data;
-  color->red = priv->old_color[COLORSEL_RED];
-  color->green = priv->old_color[COLORSEL_GREEN];
-  color->blue = priv->old_color[COLORSEL_BLUE];
+  color->red   = priv->old_color[COLORSEL_RED];
+  color->green = priv->old_color[COLORSEL_GRN];
+  color->blue  = priv->old_color[COLORSEL_BLU];
 }
 
 /**
@@ -2604,7 +2626,7 @@ mate_color_selection_get_previous_alpha (MateColorSelection *colorsel)
   g_return_val_if_fail (MATE_IS_COLOR_SELECTION (colorsel), 0);
 
   priv = colorsel->private_data;
-  return priv->has_opacity ? UNSCALE (priv->old_color[COLORSEL_OPACITY]) : 65535;
+  return priv->has_opacity ? UNSCALE (priv->old_color[COLORSEL_OPA]) : 65535;
 }
 
 /**
@@ -2618,8 +2640,8 @@ mate_color_selection_get_previous_alpha (MateColorSelection *colorsel)
  **/
 static void
 mate_color_selection_set_palette_color (MateColorSelection *colorsel,
-				       gint                 index,
-				       GdkRGBA             *color)
+                                        gint                index,
+                                        GdkRGBA            *color)
 {
   gdouble new[3];
 
